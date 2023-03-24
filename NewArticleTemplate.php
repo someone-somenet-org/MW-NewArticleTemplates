@@ -1,5 +1,7 @@
 <?php
 
+use MediaWiki\Revision\RevisionLookup;
+use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Permissions\PermissionManager;
 
@@ -22,9 +24,9 @@ function preload( $preload ) {
 	else {
 		$preloadTitle = Title::newFromText( $preload );
 		if ( isset( $preloadTitle ) && MediaWikiServices::getInstance()->getPermissionManager()->userCan( 'read', RequestContext::getMain()->getUser(), $preloadTitle) ) {
-			$rev=Revision::newFromTitle($preloadTitle);
+			$rev = MediaWikiServices::getInstance()->getRevisionLookup()->getRevisionByTitle($preloadTitle);
 			if ( is_object( $rev ) ) {
-				$content = $rev->getContent( Revision::RAW );
+				$content = $rev->getContent(($rev->getSlotRoles())[0], RevisionRecord::RAW );
 				$text = ContentHandler::getContentText( $content );
 				$text = StringUtils::delimiterReplace( '<noinclude>', '</noinclude>', '', $text );
 				$text = strtr( $text, array( '<includeonly>' => '', '</includeonly>' => '' ) );
@@ -44,13 +46,13 @@ function newArticleTemplates( $newPage ) {
 	global $wgNewArticleTemplatesEnable;
 
 	/* some checks */
-	if ( $newPage->mTitle->exists() or $newPage->firsttime != 1 or !$wgNewArticleTemplatesEnable )
+	if ( $newPage->getTitle()->exists() or $newPage->firsttime != 1 or !$wgNewArticleTemplatesEnable )
 		return true;
 
 	global $wgNewArticleTemplatesNamespaces, $wgNewArticleTemplatesOnSubpages;
 
 	/* see if this is a subpage */
-	$title = $newPage->mTitle;
+	$title = $newPage->getTitle();
 	$isSubpage = false;
 
 	if ( $title->isSubpage() ) {
